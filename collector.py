@@ -45,6 +45,29 @@ echo "LOAD15=$l15"
 echo "MEM_TOTAL_KB=$mt"
 echo "MEM_AVAIL_KB=$ma"
 echo "CPU_COUNT=$cc"
+# Per‑core utilisation using /proc/stat
+readarray -t cores1 < <(grep -E '^cpu[0-9]+' /proc/stat)
+sleep 1
+readarray -t cores2 < <(grep -E '^cpu[0-9]+' /proc/stat)
+for idx in "${!cores1[@]}"; do
+  line1=${cores1[$idx]}
+  line2=${cores2[$idx]}
+  set -- $line1
+  label=$1; shift
+  vals1=($@)
+  set -- $line2
+  shift
+  vals2=($@)
+  total1=0; idle1=0; total2=0; idle2=0
+  for v in "${vals1[@]}"; do total1=$((total1+v)); done
+  idle1=${vals1[3]}
+  for v in "${vals2[@]}"; do total2=$((total2+v)); done
+  idle2=${vals2[3]}
+  dt=$((total2-total1)); di=$((idle2-idle1))
+  if [ $dt -le 0 ]; then util=0; else util=$(( (dt-di)*100/dt )); fi
+  core_index=${label#cpu}
+  printf "CPU_CORE_%s=%d\n" "$core_index" "$util"
+done
 if command -v tegrastats >/dev/null 2>&1; then
   ts=$(timeout 2 tegrastats 2>/dev/null | head -n 1)
   gu=$(echo "$ts" | awk '{for (i=1; i<=NF; i++) if ($i=="GR3D_FREQ") v=$(i+1); sub(/%/,"",v); print v}')
