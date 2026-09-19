@@ -86,6 +86,17 @@
     .bar > i { display: block; height: 100%; border-radius: 999px; transition: width .5s ease; }
     .load { font-size: 13px; margin-top: 6px; color: var(--text); }
     .load span { color: var(--muted); font-size: 11px; }
+    .cores-toggle { background: none; border: 1px solid var(--border); color: var(--muted);
+                    font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 9px;
+                    cursor: pointer; margin-left: 8px; }
+    .cores-toggle:hover { color: var(--text); border-color: var(--muted); }
+    .cores-toggle.open { color: var(--cyan); border-color: var(--cyan); }
+    .coregrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 8px 18px; margin-top: 4px; }
+    .core { display: grid; grid-template-columns: 30px 1fr 38px; align-items: center; gap: 8px;
+            font-size: 12px; }
+    .core .core-id { color: var(--muted); font-family: ui-monospace, monospace; }
+    .core .core-val { text-align: right; font-weight: 600; font-family: ui-monospace, monospace; }
 
     .gpus { margin-bottom: 14px; }
     .gpus .title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
@@ -169,7 +180,16 @@
       });
     }
 
-    function gpuHtml(g) {
+    function coreHtml(c) {
+  const col = colorFor(c.util);
+  return `<div class="core">
+    <span class="core-id">C${c.index}</span>
+    <div class="bar"><i style="width:${c.util}%;background:${col}"></i></div>
+    <span class="core-val" style="color:${col}">${c.util}%</span>
+  </div>`;
+}
+
+function gpuHtml(g) {
       const col = colorFor(g.util);
       const mem = g.mem_total_mb ? `${g.mem_used_mb} / ${g.mem_total_mb} MB` : "";
       return `<div class="gpu">
@@ -211,6 +231,16 @@
         ? `${node.load1.toFixed(2)} / ${node.load5.toFixed(2)} / ${node.load15.toFixed(2)}` : "–";
       loadVal = `<div class="load">${loadText} <span>load 1/5/15 · ${node.cpu_count} cores</span></div>`;
 
+      const cores = node.cores || [];
+      const coreBlock = cores.length
+        ? `<div class="metric" style="grid-column:1 / -1">
+             <div class="label">Per-core CPU
+               <button class="cores-toggle" type="button">${cores.length} cores</button>
+             </div>
+             <div class="coregrid" hidden>${cores.map(coreHtml).join("")}</div>
+           </div>`
+        : "";
+
       gpuBlock = node.gpus.length
         ? `<div class="title">GPUs (${node.gpus.length})</div>` + node.gpus.map(gpuHtml).join("")
         : `<div class="title">GPUs</div><div class="nongpu">no NVIDIA GPUs detected</div>`;
@@ -221,12 +251,18 @@
              <div class="gauge-wrap">${cpuVal}</div></div>
            <div class="metric"><div class="label">Memory</div>${memVal}</div>
            <div class="metric" style="grid-column:1 / -1"><div class="label">Load</div>${loadVal}</div>
+           ${coreBlock}
          </div>
          <div class="gpus">${gpuBlock}</div>
          <div class="metric"><div class="label">Trend</div>
-           <div class="chart-box"><canvas id="chart-${node.name}"></canvas></div>
-         </div>`;
+            <div class="chart-box"><canvas id="chart-${node.name}"></canvas></div>
+          </div>`;
 
+      if (openCores.has(node.name)) {
+        const panel = el.querySelector(".coregrid");
+        const btn = el.querySelector(".cores-toggle");
+        if (panel && btn) { panel.hidden = false; btn.classList.add("open"); }
+      }
       if (!charts[node.name]) makeChart(node.name);
       updateChart(node);
     }
@@ -271,7 +307,19 @@
       knownNames = nodes.map(n => n.name).sort().join(",");
     }
 
-    async function refresh() {
+    const openCores = new Set();
+grid.addEventListener("click", (e) => {
+  const btn = e.target.closest(".cores-toggle");
+  if (!btn) return;
+  const name = btn.closest(".card").id.slice(5);
+  const panel = btn.parentElement.nextElementSibling;
+  const nowOpen = panel.hidden;
+  panel.hidden = !nowOpen;
+  btn.classList.toggle("open", nowOpen);
+  if (nowOpen) openCores.add(name); else openCores.delete(name);
+});
+
+async function refresh() {
       let data;
       try {
         const r = await fetch("/api/status");

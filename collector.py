@@ -26,6 +26,7 @@ NODES_FILE = os.path.join(BASE_DIR, "nodes.json")
 # plus load, memory, core count, and (if present) nvidia-smi GPU stats.
 # Prints flat KEY=VALUE lines that are trivial to parse locally.
 REMOTE_SCRIPT = r"""
+snap1=$(awk '$1 ~ /^cpu[0-9]+ /' /proc/stat 2>/dev/null)
 read -r _ u n s i iw irq sirq st _ < /proc/stat 2>/dev/null
 t1=$((u+n+s+i+iw+irq+sirq+st)); i1=$((i+iw))
 sleep 1
@@ -44,6 +45,26 @@ echo "LOAD15=$l15"
 echo "MEM_TOTAL_KB=$mt"
 echo "MEM_AVAIL_KB=$ma"
 echo "CPU_COUNT=$cc"
+awk -v snap="$snap1" '
+  BEGIN {
+    m = split(snap, L, "\n")
+    for (x = 1; x <= m; x++) {
+      nf = split(L[x], F, " ")
+      if (F[1] ~ /^cpu[0-9]+$/) {
+        idx = substr(F[1], 4)
+        tot[idx] = F[2] + F[3] + F[4] + F[5] + F[6] + F[7] + F[8] + F[9]
+        idl[idx] = F[5] + F[6]
+      }
+    }
+  }
+  $1 ~ /^cpu[0-9]+$/ {
+    idx = substr($1, 4)
+    dt = ($2 + $3 + $4 + $5 + $6 + $7 + $8 + $9) - tot[idx]
+    di = ($5 + $6) - idl[idx]
+    c = (dt > 0) ? (dt - di) * 100 / dt : 0
+    printf "CPU_CORE_%s=%d\n", idx, c
+  }
+' /proc/stat 2>/dev/null
 if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=index,utilization.gpu,memory.used,memory.total \
     --format=csv,noheader,nounits 2>/dev/null |
@@ -168,6 +189,15 @@ def _fill_metrics(status, vals, started):
             gpu["mem_total_mb"] = _to_int(value)
     gpus.sort(key=lambda g: g["index"])
     status["gpus"] = gpus
+
+    cores = []
+    for key, value in vals.items():
+        if key.startswith("CPU_CORE_"):
+            cores.append(
+                {"index": _to_int(key.rsplit("_", 1)[1]), "util": _to_int(value)}
+            )
+    cores.sort(key=lambda c: c["index"])
+    status["cores"] = cores
     status["checked_at"] = started
 
 
@@ -190,6 +220,7 @@ def collect_batch(nodes, timeout=6):
             "mem_used_mb": None,
             "mem_pct": None,
             "gpus": [],
+            "cores": [],
             "checked_at": started,
         }
 

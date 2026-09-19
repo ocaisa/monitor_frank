@@ -10,13 +10,14 @@ set of compute workers, with short trend charts per node.
   `clush -w worker01,worker02,worker03,worker04 <script>` on the head
   node; clush fans the script out to all workers in parallel over their
   passwordless SSH.
-- The script samples `/proc/stat` (two reads 1 s apart → CPU %),
-  `/proc/loadavg`, `/proc/meminfo` and `nproc`, plus `nvidia-smi` when
-  present, and prints flat `KEY=VALUE` lines.
+- The script samples `/proc/stat` (two reads 1 s apart → overall and
+  per-core CPU %), `/proc/loadavg`, `/proc/meminfo` and `nproc`, plus
+  `nvidia-smi` when present, and prints flat `KEY=VALUE` lines.
 - The collector parses the clush output, keeps a short in-memory history
   per node (no disk, no database), and serves it as JSON.
 - `app.py` (Flask) + `templates/index.html` render one card per node with
-  gauges, load, GPU bars and Chart.js trend lines. The header shows the
+  gauges, load, GPU bars and Chart.js trend lines. Each card has a
+  per-core CPU breakdown behind a click toggle. The header shows the
   EESSI logo and links to the [EESSI status page](https://status.eessi.io/).
 
 ## Requirements
@@ -47,7 +48,6 @@ Environment variables:
 | `MONITOR_HISTORY`    | `180`    | Samples kept per node (≈ minutes at 5 s)       |
 | `MONITOR_SSH_TIMEOUT`| `6`      | Base of the per-poll time budget (seconds)     |
 | `PORT`               | `8080`   | Web port                                       |
-| `HOST`               | `0.0.0.0`| Bind address                                   |
 
 ## Running
 
@@ -57,7 +57,9 @@ On the head node:
 venv/bin/python app.py
 ```
 
-Then open `http://<head-node>:8080`. JSON API: `GET /api/status`.
+The app binds to `127.0.0.1` only. Open `http://localhost:8080` on the head
+node, or tunnel it: `ssh -L 8080:localhost:8080 <head-node>`.
+JSON API: `GET /api/status`.
 
 To keep it alive, run it under systemd or `tmux`/`nohup`, e.g.:
 
