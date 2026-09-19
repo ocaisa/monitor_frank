@@ -243,7 +243,7 @@ function gpuHtml(g) {
 
       gpuBlock = node.gpus.length
         ? `<div class="title">GPUs (${node.gpus.length})</div>` + node.gpus.map(gpuHtml).join("")
-        : `<div class="title">GPUs</div><div class="nongpu">no NVIDIA GPUs detected</div>`;
+        : `<div class="title">GPUs</div><div class="nongpu">no GPUs detected</div>`;
 
       el.innerHTML = head(node, online) +
         `<div class="metrics">

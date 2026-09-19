@@ -22,11 +22,11 @@ from collections import deque
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 NODES_FILE = os.path.join(BASE_DIR, "nodes.json")
 
-# Remote snippet: samples /proc/stat twice (1s apart) for an accurate CPU%,
-# plus load, memory, core count, and (if present) nvidia-smi GPU stats.
-# Prints flat KEY=VALUE lines that are trivial to parse locally.
+# Remote snippet: samples /proc/stat twice (1s apart) for an accurate
+# overall CPU%, plus load, memory, core count, and tegrastats (Jetson
+# Orin Nano) for GPU utilisation (GR3D_FREQ) and per-core CPU% (the
+# "CPU [79%@1651,62%@1675,...]" list). Prints flat KEY=VALUE lines.
 REMOTE_SCRIPT = r"""
-snap1=$(awk '$1 ~ /^cpu[0-9]+ /' /proc/stat 2>/dev/null)
 read -r _ u n s i iw irq sirq st _ < /proc/stat 2>/dev/null
 t1=$((u+n+s+i+iw+irq+sirq+st)); i1=$((i+iw))
 sleep 1
@@ -45,35 +45,25 @@ echo "LOAD15=$l15"
 echo "MEM_TOTAL_KB=$mt"
 echo "MEM_AVAIL_KB=$ma"
 echo "CPU_COUNT=$cc"
-awk -v snap="$snap1" '
-  BEGIN {
-    m = split(snap, L, "\n")
-    for (x = 1; x <= m; x++) {
-      nf = split(L[x], F, " ")
-      if (F[1] ~ /^cpu[0-9]+$/) {
-        idx = substr(F[1], 4)
-        tot[idx] = F[2] + F[3] + F[4] + F[5] + F[6] + F[7] + F[8] + F[9]
-        idl[idx] = F[5] + F[6]
+if command -v tegrastats >/dev/null 2>&1; then
+  ts=$(timeout 2 tegrastats 2>/dev/null | head -n 1)
+  gu=$(echo "$ts" | awk '{for (i=1; i<=NF; i++) if ($i=="GR3D_FREQ") v=$(i+1); sub(/%/,"",v); print v}')
+  [ -n "$gu" ] && echo "GPU_0_UTIL=$gu"
+  echo "$ts" | awk '
+    {
+      for (i = 1; i <= NF; i++) if ($i == "CPU" && $(i+1) ~ /^\[/) {
+        s = $(i+1)
+        gsub(/[\[\]]/, "", s)
+        n = split(s, C, ",")
+        for (k = 1; k <= n; k++) {
+          split(C[k], P, "@")
+          u = P[1]
+          sub(/%/, "", u)
+          printf "CPU_CORE_%d=%d\n", k - 1, u
+        }
+        break
       }
-    }
-  }
-  $1 ~ /^cpu[0-9]+$/ {
-    idx = substr($1, 4)
-    dt = ($2 + $3 + $4 + $5 + $6 + $7 + $8 + $9) - tot[idx]
-    di = ($5 + $6) - idl[idx]
-    c = (dt > 0) ? (dt - di) * 100 / dt : 0
-    printf "CPU_CORE_%s=%d\n", idx, c
-  }
-' /proc/stat 2>/dev/null
-if command -v nvidia-smi >/dev/null 2>&1; then
-  nvidia-smi --query-gpu=index,utilization.gpu,memory.used,memory.total \
-    --format=csv,noheader,nounits 2>/dev/null |
-  while IFS=',' read -r idx util mu mtt; do
-    util=${util# }; mu=${mu# }; mtt=${mtt# }
-    echo "GPU_${idx}_UTIL=${util}"
-    echo "GPU_${idx}_MEM_USED_MB=${mu}"
-    echo "GPU_${idx}_MEM_TOTAL_MB=${mtt}"
-  done
+    }'
 fi
 """
 

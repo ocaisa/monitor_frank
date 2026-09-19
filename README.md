@@ -10,9 +10,10 @@ set of compute workers, with short trend charts per node.
   `clush -w worker01,worker02,worker03,worker04 <script>` on the head
   node; clush fans the script out to all workers in parallel over their
   passwordless SSH.
-- The script samples `/proc/stat` (two reads 1 s apart → overall and
-  per-core CPU %), `/proc/loadavg`, `/proc/meminfo` and `nproc`, plus
-  `nvidia-smi` when present, and prints flat `KEY=VALUE` lines.
+- The script samples `/proc/stat` (two reads 1 s apart → overall CPU %),
+  `/proc/loadavg`, `/proc/meminfo` and `nproc`, plus `tegrastats` (Jetson
+  Orin Nano) for GPU utilisation and the per-core CPU % list, and prints
+  flat `KEY=VALUE` lines.
 - The collector parses the clush output, keeps a short in-memory history
   per node (no disk, no database), and serves it as JSON.
 - `app.py` (Flask) + `templates/index.html` render one card per node with
