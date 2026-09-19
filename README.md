@@ -17,8 +17,8 @@ set of compute workers, with short trend charts per node.
 - The collector parses the clush output, keeps a short in-memory history
   per node (no disk, no database), and serves it as JSON.
 - `app.py` (Flask) + `templates/index.html` render one card per node with
-  gauges, load, GPU bars and Chart.js trend lines. Each card has a
-  per-core CPU breakdown behind a click toggle. The header shows the
+  CPU/memory gauges, load, GPU utilisation and a full-width per-core CPU
+  breakdown (visible by default, collapsible). The header shows the
   EESSI logo and links to the [EESSI status page](https://status.eessi.io/).
 
 ## Requirements

@@ -4,45 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Node Monitor</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0b1020;
-      --panel: #131a2e;
-      --panel-2: #0f1526;
-      --border: #223052;
-      --text: #e6ecff;
-      --muted: #8492b6;
-      --green: #34d399;
-      --amber: #fbbf24;
-      --red: #f87171;
-      --cyan: #22d3ee;
-      --violet: #a78bfa;
+      --bg: #eef1f7;
+      --panel: #ffffff;
+      --panel-2: #f7f9fc;
+      --border: #dce2ee;
+      --text: #1c2438;
+      --muted: #64708a;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+      --cyan: #0891b2;
+      --violet: #7c3aed;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: radial-gradient(1200px 600px at 80% -10%, #16203f 0%, var(--bg) 55%);
+      background: radial-gradient(1200px 600px at 80% -10%, #e3eafc 0%, var(--bg) 55%);
       color: var(--text);
       min-height: 100vh;
     }
     header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 20px 28px; border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; background: rgba(11,16,32,.82); backdrop-filter: blur(8px); z-index: 5;
+      position: sticky; top: 0; background: rgba(255,255,255,.85); backdrop-filter: blur(8px); z-index: 5;
     }
     header h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: .3px; }
     header h1 span { color: var(--green); }
     .meta { display: flex; gap: 18px; align-items: center; color: var(--muted); font-size: 13px; }
     .meta b { color: var(--text); font-weight: 600; }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .logo-box { display: inline-flex; align-items: center; background: #e6eaf2;
-                border-radius: 10px; padding: 4px 6px; }
+    .logo-box { display: inline-flex; align-items: center; background: #ffffff;
+                border: 1px solid var(--border); border-radius: 10px; padding: 4px 6px; }
     .logo { height: 28px; width: auto; display: block; }
     .statuslink { color: var(--cyan); text-decoration: none; font-size: 12px; font-weight: 600;
-                  border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
-    .statuslink:hover { border-color: var(--cyan); background: rgba(34,211,238,.08); }
+                   border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+    .statuslink:hover { border-color: var(--cyan); background: rgba(8,145,178,.08); }
     .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
     .grid {
       display: grid; gap: 20px; padding: 24px 28px 40px;
@@ -51,7 +50,7 @@
     .card {
       background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
       border: 1px solid var(--border); border-radius: 16px; padding: 18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      box-shadow: 0 6px 18px rgba(16,24,40,.06);
     }
     .card.offline { opacity: .75; }
     .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -65,15 +64,15 @@
            font-family: ui-monospace, monospace; }
 
     .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-    .metric { background: rgba(255,255,255,.02); border: 1px solid var(--border);
-              border-radius: 12px; padding: 12px; }
+    .metric { background: rgba(16,24,40,.025); border: 1px solid var(--border);
+               border-radius: 12px; padding: 12px; }
     .metric .label { color: var(--muted); font-size: 11px; text-transform: uppercase;
                      letter-spacing: .6px; margin-bottom: 8px; }
     .gauge-wrap { display: flex; align-items: center; gap: 12px; }
     .gauge {
       --val: 0; --col: var(--green);
       width: 62px; height: 62px; border-radius: 50%; flex: 0 0 auto;
-      background: conic-gradient(var(--col) calc(var(--val) * 1%), rgba(255,255,255,.07) 0);
+      background: conic-gradient(var(--col) calc(var(--val) * 1%), rgba(16,24,40,.08) 0);
       -webkit-mask: radial-gradient(farthest-side, transparent 62%, #000 63%);
       mask: radial-gradient(farthest-side, transparent 62%, #000 63%);
       position: relative;
@@ -82,7 +81,7 @@
     .gauge-val small { font-size: 12px; color: var(--muted); font-weight: 500; }
     .sub { color: var(--muted); font-size: 12px; margin-top: 8px; }
 
-    .bar { height: 8px; background: rgba(255,255,255,.07); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .bar { height: 8px; background: rgba(16,24,40,.08); border-radius: 999px; overflow: hidden; margin-top: 6px; }
     .bar > i { display: block; height: 100%; border-radius: 999px; transition: width .5s ease; }
     .load { font-size: 13px; margin-top: 6px; color: var(--text); }
     .load span { color: var(--muted); font-size: 11px; }
@@ -101,14 +100,13 @@
     .gpus { margin-bottom: 14px; }
     .gpus .title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
     .gpu { display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: 10px;
-           padding: 7px 0; border-bottom: 1px dashed rgba(255,255,255,.06); }
+            padding: 7px 0; border-bottom: 1px dashed rgba(16,24,40,.14); }
     .gpu:last-child { border-bottom: 0; }
     .gpu .gid { font-family: ui-monospace, monospace; color: var(--muted); font-size: 12px; }
     .gpu .gval { font-weight: 700; font-size: 14px; }
     .gpu .gmem { color: var(--muted); font-size: 11.5px; font-family: ui-monospace, monospace; }
     .nongpu { color: var(--muted); font-size: 12.5px; font-style: italic; }
 
-    .chart-box { height: 130px; position: relative; margin-top: 4px; }
     .placeholder { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
     .dot.pulse { animation: pulse 1.4s infinite; }
@@ -135,7 +133,6 @@
 
   <script>
     const grid = document.getElementById("grid");
-    const charts = {};
     let knownNames = null;
 
     function colorFor(v) {
@@ -151,33 +148,6 @@
     function esc(s) {
       return String(s ?? "").replace(/[&<>"']/g, c =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    }
-
-    function makeChart(name) {
-      const ctx = document.getElementById("chart-" + name);
-      if (!ctx) return;
-      charts[name] = new Chart(ctx, {
-        type: "line",
-        data: { labels: [], datasets: [
-          { label: "CPU", data: [], borderColor: "#34d399", backgroundColor: "rgba(52,211,153,.12)",
-            fill: true, tension: .35, pointRadius: 0, borderWidth: 2, spanGaps: true, yAxisID: "y" },
-          { label: "GPU", data: [], borderColor: "#22d3ee", backgroundColor: "rgba(34,211,238,.10)",
-            fill: true, tension: .35, pointRadius: 0, borderWidth: 2, spanGaps: true, yAxisID: "y" },
-        ] },
-        options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          interaction: { mode: "index", intersect: false },
-          plugins: {
-            legend: { display: true, labels: { color: "#8492b6", boxWidth: 12, font: { size: 11 } } },
-            tooltip: { callbacks: { title: (i) => i[0].label } },
-          },
-          scales: {
-            x: { ticks: { color: "#5b6a92", maxTicksLimit: 6, font: { size: 10 } }, grid: { display: false } },
-            y: { min: 0, max: 100, ticks: { color: "#5b6a92", stepSize: 50, font: { size: 10 } },
-                 grid: { color: "rgba(255,255,255,.05)" }, title: { display: false } },
-          },
-        },
-      });
     }
 
     function coreHtml(c) {
@@ -205,7 +175,7 @@ function gpuHtml(g) {
       const el = document.getElementById("card-" + node.name);
       const col = colorFor(node.cpu);
 
-      let cpuVal, memVal, loadVal, gpuBlock, chart;
+      let cpuVal, memVal, loadVal, gpuBlock;
 
       if (!online) {
         cpuVal = `<div class="gauge" style="--val:0"></div>
@@ -232,8 +202,13 @@ function gpuHtml(g) {
       loadVal = `<div class="load">${loadText} <span>load 1/5/15 · ${node.cpu_count} cores</span></div>`;
 
       const cores = node.cores || [];
-      const coreBlock = cores.length
-        ? `<div class="metric" style="grid-column:1 / -1">
+
+      gpuBlock = node.gpus.length
+        ? `<div class="title">GPUs (${node.gpus.length})</div>` + node.gpus.map(gpuHtml).join("")
+        : `<div class="title">GPUs</div><div class="nongpu">no GPUs detected</div>`;
+
+      const coresBlock = cores.length
+        ? `<div class="metric">
              <div class="label">Per-core CPU
                <button class="cores-toggle" type="button">${cores.length} cores</button>
              </div>
@@ -241,30 +216,23 @@ function gpuHtml(g) {
            </div>`
         : "";
 
-      gpuBlock = node.gpus.length
-        ? `<div class="title">GPUs (${node.gpus.length})</div>` + node.gpus.map(gpuHtml).join("")
-        : `<div class="title">GPUs</div><div class="nongpu">no GPUs detected</div>`;
-
       el.innerHTML = head(node, online) +
         `<div class="metrics">
            <div class="metric"><div class="label">CPU</div>
              <div class="gauge-wrap">${cpuVal}</div></div>
            <div class="metric"><div class="label">Memory</div>${memVal}</div>
            <div class="metric" style="grid-column:1 / -1"><div class="label">Load</div>${loadVal}</div>
-           ${coreBlock}
          </div>
          <div class="gpus">${gpuBlock}</div>
-         <div class="metric"><div class="label">Trend</div>
-            <div class="chart-box"><canvas id="chart-${node.name}"></canvas></div>
-          </div>`;
+         ${coresBlock}`;
 
-      if (openCores.has(node.name)) {
-        const panel = el.querySelector(".coregrid");
-        const btn = el.querySelector(".cores-toggle");
-        if (panel && btn) { panel.hidden = false; btn.classList.add("open"); }
+      const panel = el.querySelector(".coregrid");
+      const btn = el.querySelector(".cores-toggle");
+      if (panel && btn) {
+        const closed = closedCores.has(node.name);
+        panel.hidden = closed;
+        btn.classList.toggle("open", !closed);
       }
-      if (!charts[node.name]) makeChart(node.name);
-      updateChart(node);
     }
 
     function head(node, online) {
@@ -282,22 +250,8 @@ function gpuHtml(g) {
               </div>`;
     }
 
-    function updateChart(node) {
-      const c = charts[node.name];
-      if (!c) return;
-      const h = node.history || [];
-      const labels = h.map(p => timeStr(p.ts));
-      c.data.labels = labels;
-      c.data.datasets[0].data = h.map(p => p.cpu);
-      const hasGpu = (node.gpus || []).length > 0;
-      c.data.datasets[1].data = h.map(p => (hasGpu ? p.gpu : null));
-      c.data.datasets[1].hidden = !hasGpu;
-      c.update("none");
-    }
-
     function buildCards(nodes) {
       grid.innerHTML = "";
-      Object.keys(charts).forEach(k => { charts[k].destroy(); delete charts[k]; });
       nodes.forEach(n => {
         const card = document.createElement("div");
         card.className = "card";
@@ -307,7 +261,7 @@ function gpuHtml(g) {
       knownNames = nodes.map(n => n.name).sort().join(",");
     }
 
-    const openCores = new Set();
+    const closedCores = new Set();
 grid.addEventListener("click", (e) => {
   const btn = e.target.closest(".cores-toggle");
   if (!btn) return;
@@ -316,7 +270,7 @@ grid.addEventListener("click", (e) => {
   const nowOpen = panel.hidden;
   panel.hidden = !nowOpen;
   btn.classList.toggle("open", nowOpen);
-  if (nowOpen) openCores.add(name); else openCores.delete(name);
+  if (nowOpen) closedCores.delete(name); else closedCores.add(name);
 });
 
 async function refresh() {
