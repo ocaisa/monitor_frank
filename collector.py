@@ -45,6 +45,12 @@ echo "LOAD15=$l15"
 echo "MEM_TOTAL_KB=$mt"
 echo "MEM_AVAIL_KB=$ma"
 echo "CPU_COUNT=$cc"
+# CPU temperature (in Celsius)
+if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+  t_raw=$(cat /sys/class/thermal/thermal_zone0/temp)
+  t_c=$((t_raw/1000))
+  echo "CPU_TEMP=$t_c"
+fi
 # Per‑core utilisation using /proc/stat
 readarray -t cores1 < <(grep -E '^cpu[0-9]+' /proc/stat)
 sleep 1
@@ -168,6 +174,7 @@ def _fill_metrics(status, vals, started):
     status["error"] = None
     status["cpu"] = _to_int(vals.get("CPU"))
     status["cpu_count"] = _to_int(vals.get("CPU_COUNT"))
+    status["cpu_temp"] = _to_int(vals.get("CPU_TEMP"))
     status["load1"] = _to_float(vals.get("LOAD1"))
     status["load5"] = _to_float(vals.get("LOAD5"))
     status["load15"] = _to_float(vals.get("LOAD15"))
@@ -235,6 +242,7 @@ def collect_batch(nodes, timeout=6):
             "gpus": [],
             "cores": [],
             "checked_at": started,
+            "cpu_temp": None,
         }
 
     results = {n["name"]: _status(n) for n in nodes}

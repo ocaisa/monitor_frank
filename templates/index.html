@@ -218,8 +218,10 @@ function gpuHtml(g) {
 
       el.innerHTML = head(node, online) +
         `<div class="metrics">
-           <div class="metric"><div class="label">CPU</div>
-             <div class="gauge-wrap">${cpuVal}</div></div>
+            <div class="metric"><div class="label">CPU</div>
+              <div class="gauge-wrap">${cpuVal}</div></div>
+            <div class="metric"><div class="label">CPU Temp</div>
+              <div class="load">${node.cpu_temp ?? "–"}°C</div></div>
            <div class="metric"><div class="label">Memory</div>${memVal}</div>
            <div class="metric" style="grid-column:1 / -1"><div class="label">Load</div>${loadVal}</div>
          </div>
